@@ -1,0 +1,11 @@
+# Dependencias de ejecución (versiones verificadas en Windows 11 + Python 3.12)
+# Instalación recomendada del proyecto completo:
+#   python -m pip install -e ".[dev]"
+pandas==2.3.3
+numpy==2.5.4
+scipy==1.18.1
+matplotlib==3.11.2
+seaborn==0.13.2
+pyarrow==17.0.0
+PyYAML==6.0.3
+requests==2.34.2

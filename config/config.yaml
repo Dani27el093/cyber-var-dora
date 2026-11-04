@@ -1,0 +1,37 @@
+project:
+  name: cyber-var-dora
+  reference_year: 2025
+  random_seed: 42
+
+paths:
+  raw_dir: data/raw
+  processed_dir: data/processed
+  reference_dir: data/reference
+  outputs_dir: outputs
+
+data:
+  # Dataset combinado de VERIS Community Database (VCDB).
+  # El archivo "joined" excluye ~5.000 brechas repetitivas de web skimmers.
+  source_url: https://raw.githubusercontent.com/vz-risk/VCDB/master/data/joined/vcdb.json.zip
+  archive_name: vcdb.json.zip
+  extracted_name: vcdb_1-of-1.json
+  finance_naics_prefix: "52"
+  min_year: 2005
+  max_year: 2025
+
+losses:
+  # overall_amount es el total declarado del incidente; si falta, se suman
+  # los componentes (asset/fraud, legal, response, brand) evitando doble conteo.
+  prefer_overall_amount: true
+  include_component_sum: true
+  range_policy: midpoint
+  # VCDB suele omitir la moneda en registros estadounidenses.
+  missing_currency_default: USD
+  min_threshold_eur: 10000
+
+simulation:
+  n_scenarios: 200000
+  confidence_levels:
+    - 0.95
+    - 0.99
+    - 0.999

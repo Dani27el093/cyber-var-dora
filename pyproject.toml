@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cybervar"
+version = "0.1.0"
+description = "Cuantificación del VaR de ciberriesgo para entidades financieras (DORA)"
+readme = "README.md"
+requires-python = ">=3.12"
+authors = [{ name = "Daniel" }]
+dependencies = [
+    "pandas>=2.2,<3",
+    "numpy>=1.26",
+    "scipy>=1.11",
+    "matplotlib>=3.8",
+    "seaborn>=0.13",
+    "pyarrow>=15,<18",
+    "PyYAML>=6",
+    "requests>=2.31",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "ipykernel>=6", "jupyterlab>=4"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
