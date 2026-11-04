@@ -72,6 +72,7 @@ Tras el ETL (`scripts/build_dataset.py`) y el EDA (`scripts/run_eda.py`):
 │   └── reference/           # Tipos de cambio, inflación, umbrales
 ├── docs/
 │   ├── decisiones.md        # Registro de decisiones metodológicas
+│   ├── diccionario_datos.md # Esquema del dataset procesado
 │   └── metodologia.md       # Documento metodológico (en construcción)
 ├── notebooks/               # EDA, ajuste y simulación (narrativa)
 ├── outputs/
