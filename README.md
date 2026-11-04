@@ -1,5 +1,7 @@
 # Cyber-VaR DORA
 
+[![CI](https://github.com/Dani27el093/cyber-var-dora/actions/workflows/ci.yml/badge.svg)](https://github.com/Dani27el093/cyber-var-dora/actions/workflows/ci.yml)
+
 Cuantificación del **Valor en Riesgo (VaR)** por incidentes de ciberseguridad en entidades financieras, usando un enfoque de **distribución de pérdidas (LDA)**: frecuencia de Poisson + severidad de cola pesada + simulación de Montecarlo.
 
 El objetivo es construir una herramienta reproducible que traduzca el histórico de incidentes en una distribución anual de pérdidas y permita responder preguntas de negocio como:
