@@ -23,7 +23,7 @@ El objetivo es construir una herramienta reproducible que traduzca el histórico
 | 2 | Limpieza, filtrado y EDA | ✅ |
 | 3 | Ajuste de frecuencia y severidad | ✅ |
 | 4 | Montecarlo y VaR / Expected Shortfall | ✅ |
-| 5 | Documentación y business case | 🚧 |
+| 5 | Documentación y business case | ✅ |
 
 Leyenda: ✅ completado · 🚧 en curso · ⏳ pendiente
 
