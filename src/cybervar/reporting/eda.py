@@ -54,8 +54,8 @@ def _describe(series: pd.Series, scope: str) -> list[dict[str, object]]:
     ]
 
 
-def summarize(all_df: pd.DataFrame, finance_df: pd.DataFrame) -> pd.DataFrame:
-    """Construye una tabla métrica-valor con el perfil del dataset."""
+def summarize(all_df: pd.DataFrame, finance_df: pd.DataFrame, threshold: float = 10_000.0) -> pd.DataFrame:
+    """Construye una tabla métrica-valor con el perfil del dataset en EUR 2025."""
     rows: list[dict[str, object]] = []
 
     def add(scope: str, metric: str, value: object) -> None:
@@ -63,77 +63,72 @@ def summarize(all_df: pd.DataFrame, finance_df: pd.DataFrame) -> pd.DataFrame:
 
     add("all", "incidents", len(all_df))
     add("all", "with_loss", int(all_df["loss_amount"].notna().sum()))
+    add("all", "with_eur", int(all_df["loss_eur_2025"].notna().sum()))
+    add("all", "loss_suspect", int(all_df["loss_suspect"].sum()))
+    add("all", "fx_missing", int(all_df["fx_missing"].sum()))
     add("all", "years_min", int(all_df["year"].min()) if all_df["year"].notna().any() else None)
     add("all", "years_max", int(all_df["year"].max()) if all_df["year"].notna().any() else None)
     add("all", "missing_industry_pct", round(100 * all_df["industry_code"].isna().mean(), 2))
     add("all", "missing_year_pct", round(100 * all_df["year"].isna().mean(), 2))
-
     add("all", "out_of_year_range", int((~all_df["in_year_range"]).sum()))
     add("all", "in_year_range", int(all_df["in_year_range"].sum()))
 
     add("finance", "incidents", len(finance_df))
     add("finance", "with_loss", int(finance_df["loss_amount"].notna().sum()))
+    add("finance", "with_eur", int(finance_df["loss_eur_2025"].notna().sum()))
     share = 100 * finance_df["loss_amount"].notna().mean() if len(finance_df) else 0.0
     add("finance", "with_loss_pct", round(float(share), 2))
 
     finance_loss = finance_df.loc[finance_df["loss_amount"].notna()]
     add("finance", "loss_currency_assumed", int(finance_loss["loss_currency_assumed"].sum()))
+    add("finance", "fx_missing", int(finance_df["fx_missing"].sum()))
+    add("finance", "loss_suspect", int(finance_df["loss_suspect"].sum()))
     for currency, count in finance_loss["loss_currency"].value_counts(dropna=False).items():
         label = currency if isinstance(currency, str) else "missing"
         add("finance", f"currency_{label}", int(count))
     for source, count in finance_loss["loss_source"].value_counts().items():
         add("finance", f"loss_source_{source}", int(count))
 
-    rows.extend(_describe(finance_loss["loss_amount"], "finance_all_currencies"))
-    usd_explicit = finance_loss.loc[
-        finance_loss["loss_currency"].eq("USD") & ~finance_loss["loss_currency_assumed"],
-        "loss_amount",
-    ]
-    usd_assumed = finance_loss.loc[
-        finance_loss["loss_currency"].eq("USD") & finance_loss["loss_currency_assumed"],
-        "loss_amount",
-    ]
-    usd_all = finance_loss.loc[finance_loss["loss_currency"].eq("USD"), "loss_amount"]
-    rows.extend(_describe(usd_explicit, "finance_usd_explicit"))
-    rows.extend(_describe(usd_assumed, "finance_usd_assumed"))
-    rows.extend(_describe(usd_all, "finance_usd_incl_assumed"))
-    rows.extend(
-        _describe(
-            all_df.loc[all_df["loss_currency"].eq("USD") & ~all_df["loss_currency_assumed"], "loss_amount"],
-            "all_usd_explicit",
-        )
-    )
+    eur = finance_df.loc[finance_df["loss_eur_2025"].notna() & ~finance_df["loss_suspect"], "loss_eur_2025"]
+    rows.extend(_describe(eur, "finance_eur_2025"))
+    rows.extend(_describe(eur.loc[eur >= threshold], "finance_eur_2025_above_threshold"))
+    rows.extend(_describe(finance_df.loc[finance_df["loss_eur_2025"] < threshold, "loss_eur_2025"], "finance_below_threshold"))
+
+    all_eur = all_df.loc[all_df["loss_eur_2025"].notna() & ~all_df["loss_suspect"], "loss_eur_2025"]
+    rows.extend(_describe(all_eur, "all_eur_2025_excl_suspect"))
+    rows.extend(_describe(all_eur.loc[all_eur >= threshold], "all_eur_2025_above_threshold"))
 
     return pd.DataFrame(rows)
 
 
-def plot_loss_distribution(finance_df: pd.DataFrame, output_dir: Path) -> Path | None:
-    """Histograma de pérdidas en escala logarítmica (subconjunto USD)."""
-    subset = finance_df.loc[
-        finance_df["loss_amount"].gt(0)
-        & finance_df["loss_currency"].eq("USD")
-        & ~finance_df["loss_currency_assumed"]
-    ]
+def plot_loss_distribution(
+    finance_df: pd.DataFrame,
+    output_dir: Path,
+    threshold: float = 10_000.0,
+) -> Path | None:
+    """Histograma de pérdidas en EUR 2025 y escala logarítmica."""
+    subset = finance_df.loc[finance_df["loss_eur_2025"].gt(0) & ~finance_df["loss_suspect"]]
     if len(subset) < 5:
-        LOGGER.warning("Muy pocas pérdidas en USD para graficar la distribución")
+        LOGGER.warning("Muy pocas pérdidas en EUR para graficar la distribución")
         return None
 
-    values = subset["loss_amount"].to_numpy()
+    values = subset["loss_eur_2025"].to_numpy()
     logs = np.log10(values)
 
     fig, ax = plt.subplots(figsize=(9, 5))
     ax.hist(logs, bins=min(30, max(8, len(values) // 3)), color=COLOR_FINANCE, alpha=0.85, edgecolor="white")
-    ax.axvline(np.median(logs), color=COLOR_ACCENT, linestyle="--", linewidth=1.5, label=f"Mediana: {np.median(values):,.0f} USD")
-    ax.axvline(np.percentile(logs, 99), color="black", linestyle=":", linewidth=1.5, label=f"P99: {np.percentile(values, 99):,.0f} USD")
+    ax.axvline(np.median(logs), color=COLOR_ACCENT, linestyle="--", linewidth=1.5, label=f"Mediana: {np.median(values):,.0f} €")
+    ax.axvline(np.percentile(logs, 99), color="black", linestyle=":", linewidth=1.5, label=f"P99: {np.percentile(values, 99):,.0f} €")
+    ax.axvline(np.log10(threshold), color="#55A868", linestyle="-", linewidth=1.2, label=f"Umbral: {threshold:,.0f} €")
 
-    ax.set_title(f"Distribución de pérdidas por incidente (finanzas, USD explícito, n={len(values)})")
-    ax.set_xlabel("log10(pérdida en USD)")
+    ax.set_title(f"Distribución de pérdidas por incidente (finanzas, EUR 2025, n={len(values)})")
+    ax.set_xlabel("log10(pérdida en EUR 2025)")
     ax.set_ylabel("Número de incidentes")
     ax.legend(frameon=False)
     ax.grid(axis="y", alpha=0.25)
     fig.tight_layout()
 
-    path = output_dir / "loss_distribution_finance_usd.png"
+    path = output_dir / "loss_distribution_finance_eur.png"
     fig.savefig(path, dpi=150, bbox_inches="tight")
     plt.close(fig)
     return path
@@ -202,7 +197,7 @@ def run_eda(
     tables_dir = config.outputs_dir / "tables"
     figures_dir = config.outputs_dir / "figures"
 
-    summary = summarize(all_df, finance_df)
+    summary = summarize(all_df, finance_df, threshold=config.losses.min_threshold_eur)
     summary_path = tables_dir / "eda_summary.csv"
     summary.to_csv(summary_path, index=False)
     LOGGER.info("Resumen guardado en %s", summary_path)
@@ -215,10 +210,12 @@ def run_eda(
         "loss_amount",
         "loss_currency",
         "loss_currency_assumed",
+        "loss_eur_2025",
+        "loss_suspect",
         "loss_source",
         "summary",
     ]
-    top_losses = all_df.nlargest(20, "loss_amount")[top_columns]
+    top_losses = all_df.nlargest(20, "loss_eur_2025")[top_columns]
     top_path = tables_dir / "top_losses.csv"
     top_losses.to_csv(top_path, index=False)
     LOGGER.info("Mayores pérdidas guardadas en %s", top_path)
@@ -227,7 +224,7 @@ def run_eda(
     finance_in_range = finance_df.loc[finance_df["in_year_range"]]
 
     for path in (
-        plot_loss_distribution(finance_in_range, figures_dir),
+        plot_loss_distribution(finance_in_range, figures_dir, threshold=config.losses.min_threshold_eur),
         plot_incidents_by_year(all_in_range, finance_in_range, figures_dir),
         plot_missingness(all_df, finance_df, figures_dir),
     ):

@@ -31,6 +31,12 @@ Salida del ETL: `data/processed/incidents_all.parquet` (10.047 filas) e `inciden
 | `loss_currency` | texto | Código ISO de la moneda; si falta, se asigna USD (ver flag). |
 | `loss_currency_assumed` | booleano | `True` si la moneda no estaba informada y se asumió USD. |
 | `loss_source` | texto | `overall_amount`, `range_midpoint`, `components_sum` o `missing`. |
+| `loss_suspect` | booleano | `True` si el importe supera el umbral de sospecha (1·10¹¹). |
+| `fx_rate` | decimal | Unidades de moneda por EUR del año del incidente. |
+| `hicp_index` | decimal | Índice HICP de la eurozona del año del incidente (2015=100). |
+| `loss_eur` | decimal | Importe convertido a EUR del año del incidente. |
+| `loss_eur_2025` | decimal | Importe normalizado a EUR de 2025 (FX + inflación). |
+| `fx_missing` | booleano | `True` si no hay tipo de cambio para la moneda/año. |
 | `loss_rating` | texto | Valoración cualitativa de severidad (Minor/Moderate/Major). |
 | `loss_component_varieties` | texto | Categorías de pérdida declaradas, separadas por `;`. |
 | `loss_component_sum` | decimal | Suma de los componentes numéricos (puede coexistir con el total). |

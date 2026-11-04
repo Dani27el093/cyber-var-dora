@@ -28,6 +28,16 @@ losses:
   # VCDB suele omitir la moneda en registros estadounidenses.
   missing_currency_default: USD
   min_threshold_eur: 10000
+  # Importes por encima de este umbral se marcan como sospechosos (error de codificación).
+  suspect_amount_threshold: 100000000000
+
+frequency:
+  # Incidentes materiales (por encima del umbral) por año en un banco mediano.
+  lambda_scenarios:
+    - 1
+    - 5
+    - 20
+  lambda_base: 5
 
 simulation:
   n_scenarios: 200000

@@ -11,6 +11,7 @@ from typing import Any
 import pandas as pd
 
 from cybervar.config import Config
+from cybervar.data.currency import add_eur_2025
 
 LOGGER = logging.getLogger(__name__)
 
@@ -192,6 +193,7 @@ def extract_loss(record: dict[str, Any], config: Config) -> dict[str, Any]:
         "loss_currency": currency,
         "loss_currency_assumed": currency_assumed,
         "loss_source": source,
+        "loss_suspect": bool(amount is not None and amount >= config.losses.suspect_amount_threshold),
         "loss_rating": _as_text(impact.get("overall_rating")),
         "loss_component_varieties": ";".join(varieties) if varieties else None,
         "loss_component_sum": component_sum,
@@ -309,7 +311,7 @@ def build_dataframe(records: list[dict[str, Any]], config: Config) -> pd.DataFra
         frame[column] = pd.to_numeric(frame[column], errors="coerce").astype(float)
 
     bool_columns = [column for column in frame.columns if column.startswith(("action_", "actor_", "cia_"))]
-    bool_columns += ["is_finance", "in_year_range", "loss_currency_assumed"]
+    bool_columns += ["is_finance", "in_year_range", "loss_currency_assumed", "loss_suspect"]
     for column in bool_columns:
         frame[column] = frame[column].fillna(False).astype(bool)
 
@@ -344,12 +346,15 @@ def build_datasets(json_path: str | Path, config: Config) -> tuple[pd.DataFrame,
     LOGGER.info("Registros leídos: %s", len(records))
 
     frame = build_dataframe(records, config)
+    frame = add_eur_2025(frame, config.data.reference_dir, config.reference_year)
     with_loss = int(frame["loss_amount"].notna().sum())
     finance_with_loss = int(frame.loc[frame["is_finance"], "loss_amount"].notna().sum())
+    with_eur = int(frame["loss_eur_2025"].notna().sum())
     LOGGER.info(
-        "Incidentes: %s | con importe: %s | finanzas: %s | finanzas con importe: %s",
+        "Incidentes: %s | con importe: %s | con EUR: %s | finanzas: %s | finanzas con importe: %s",
         len(frame),
         with_loss,
+        with_eur,
         int(frame["is_finance"].sum()),
         finance_with_loss,
     )

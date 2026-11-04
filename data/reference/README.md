@@ -1,8 +1,14 @@
 # Datos de referencia
 
-Archivos pequeños y versionados que permiten normalizar importes:
+Tablas pequeñas y versionadas que permiten normalizar importes a EUR 2025:
 
-- `fx_rates.csv`: tipos de cambio anuales promedio a EUR (fuente BCE / Frankfurter).
-- `hicp.csv`: índice de precios armonizado de la eurozona (fuente Eurostat).
+- `fx_rates.csv`: tipos de cambio medios anuales (unidades de moneda por EUR) para USD, GBP, THB, INR, ZAR, CAD, AUD, CZK, KRW y SGD. Fuente: BCE (`eurofxref-hist`).
+- `hicp_ea20.csv`: índice HICP anual medio de la eurozona (EA20, 2015=100). Fuente: Eurostat (`prc_hicp_aind`).
 
-Se incorporarán en la fase de normalización monetaria. Mientras tanto, los importes se conservan en su moneda original con la columna `loss_currency` y el flag `loss_currency_assumed`.
+Se regeneran con:
+
+```powershell
+python scripts/build_reference_data.py
+```
+
+Los importes originales se conservan en `loss_amount` y `loss_currency`; la conversión se añade en `loss_eur`, `loss_eur_2025` y los flags `fx_missing` y `loss_currency_assumed`.

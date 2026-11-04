@@ -36,6 +36,7 @@ class LossConfig:
     range_policy: str
     missing_currency_default: str
     min_threshold_eur: float
+    suspect_amount_threshold: float
 
 
 @dataclass(frozen=True)
@@ -47,6 +48,14 @@ class SimulationConfig:
 
 
 @dataclass(frozen=True)
+class FrequencyConfig:
+    """Escenarios de frecuencia anual (incidentes materiales por año)."""
+
+    lambda_scenarios: tuple[float, ...]
+    lambda_base: float
+
+
+@dataclass(frozen=True)
 class Config:
     """Configuración completa del proyecto."""
 
@@ -55,6 +64,7 @@ class Config:
     random_seed: int
     data: DataConfig
     losses: LossConfig
+    frequency: FrequencyConfig
     simulation: SimulationConfig
     outputs_dir: Path
 
@@ -93,6 +103,7 @@ def load_config(path: str | Path | None = None) -> Config:
     data_raw = raw.get("data", {})
     losses_raw = raw.get("losses", {})
     simulation_raw = raw.get("simulation", {})
+    frequency_raw = raw.get("frequency", {})
 
     data = DataConfig(
         source_url=_require(data_raw, "source_url", "data"),
@@ -123,6 +134,15 @@ def load_config(path: str | Path | None = None) -> Config:
     if simulation.n_scenarios < 1_000:
         raise ValueError("n_scenarios debe ser al menos 1.000")
 
+    lambda_scenarios = tuple(
+        sorted(float(value) for value in _require(frequency_raw, "lambda_scenarios", "frequency"))
+    )
+    if not lambda_scenarios or any(value < 0 for value in lambda_scenarios):
+        raise ValueError("lambda_scenarios debe contener valores no negativos")
+    lambda_base = float(_require(frequency_raw, "lambda_base", "frequency"))
+    if lambda_base not in lambda_scenarios:
+        raise ValueError("lambda_base debe estar incluido en lambda_scenarios")
+
     return Config(
         name=str(_require(project, "name", "project")),
         reference_year=int(_require(project, "reference_year", "project")),
@@ -134,6 +154,11 @@ def load_config(path: str | Path | None = None) -> Config:
             range_policy=range_policy,
             missing_currency_default=str(losses_raw.get("missing_currency_default", "USD")),
             min_threshold_eur=float(losses_raw.get("min_threshold_eur", 0.0)),
+            suspect_amount_threshold=float(losses_raw.get("suspect_amount_threshold", 1e11)),
+        ),
+        frequency=FrequencyConfig(
+            lambda_scenarios=lambda_scenarios,
+            lambda_base=lambda_base,
         ),
         simulation=simulation,
         outputs_dir=_resolve(_require(paths, "outputs_dir", "paths")),

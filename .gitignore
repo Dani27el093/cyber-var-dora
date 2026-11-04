@@ -23,6 +23,8 @@ data/processed/*
 data/reference/*
 !data/reference/.gitkeep
 !data/reference/README.md
+!data/reference/fx_rates.csv
+!data/reference/hicp_ea20.csv
 
 # Salidas generadas
 outputs/figures/*
